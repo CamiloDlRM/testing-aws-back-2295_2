@@ -1,0 +1,191 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// --- MODELS --- //
+
+model Role {
+  id          Int          @id @default(autoincrement()) @map("id_rol")
+  name        String       @unique @map("rol")
+  description String?      @map("descripcion")
+  users       User[]
+  endpoints   Endpoint[]   @relation("EndpointRoles")
+  permissions Permission[] @relation("RolePermissions")
+
+  @@map("roles")
+}
+
+model Endpoint {
+  id          Int     @id @default(autoincrement()) @map("id_endpoint")
+  name        String  @unique @map("nombre")
+  description String? @map("descripcion")
+  roles       Role[]  @relation("EndpointRoles")
+
+  @@map("endpoint")
+}
+
+model Permission {
+  id          Int     @id @default(autoincrement()) @map("id_permiso")
+  name        String  @unique @map("nombre")
+  description String? @map("descripcion")
+
+  roles Role[] @relation("RolePermissions")
+
+  @@map("permisos")
+}
+
+enum ConfirmationStatus {
+  PENDING
+  CONFIRMED
+  EXPIRED
+}
+
+model User {
+  id       Int     @id @default(autoincrement()) @map("id_usuario")
+  name     String? @db.VarChar(20)
+  username String? @unique @db.VarChar(30)
+  email    String  @unique @map("correo") @db.VarChar(30)
+  password String
+
+  confirmationStatus ConfirmationStatus? @map("estado_confirmacion")
+  confirmationToken  String?             @unique @map("token_confirmacion")
+  isActive           Boolean?            @default(false) @map("activo")
+
+  roleId Int  @map("id_rol")
+  role   Role @relation(fields: [roleId], references: [id])
+
+  createdAt DateTime @default(now()) @map("creado_en")
+  updatedAt DateTime @updatedAt @map("actualizado_en")
+
+  createdTeam Team? @relation("createdTeam")
+
+  teamsToEvaluate Team[] @relation("JurorTeamAssignment")
+
+  evaluationsSubmitted Evaluation[] @relation("JurorEvaluations")
+
+  managedNrcs NRC[] @relation("ProfessorNRC")
+
+  @@map("usuarios")
+}
+
+model Team {
+  id               Int      @id @default(autoincrement()) @map("id_equipo")
+  teamName         String   @unique @map("nombre_equipo") @db.VarChar(50)
+  registrationDate DateTime @default(now()) @map("fecha_registro")
+  isConfirmed      Boolean? @map("estado_confirmacion")
+
+  ownerId Int  @unique @map("id_usuario")
+  owner   User @relation("createdTeam", fields: [ownerId], references: [id])
+
+  members   Member[]   @relation("TeamMembers")
+  videogame Videogame?
+
+  assignedJurors User[] @relation("JurorTeamAssignment")
+
+  @@map("equipos")
+}
+
+model Member {
+  id          Int    @id @default(autoincrement()) @map("id_integrante")
+  name        String @map("nombre") @db.VarChar(50)
+  email       String @unique @map("correo") @db.VarChar(100)
+  studentCode String @unique @map("codigo_estudiantil") @db.VarChar(100)
+
+  teamId Int  @map("id_equipo")
+  team   Team @relation("TeamMembers", fields: [teamId], references: [id])
+
+  nrcs NRC[] @relation("MemberNRC")
+
+  @@map("integrante")
+}
+
+model Videogame {
+  id               Int      @id @default(autoincrement()) @map("id_videojuego")
+  name             String   @map("nombre") @db.VarChar(30)
+  description      String?  @map("descripcion") @db.VarChar(150)
+  registrationDate DateTime @default(now()) @map("fecha_registro")
+  status           String?  @map("estado") @db.VarChar(15)
+
+  teamId Int  @unique @map("id_equipo")
+  team   Team @relation(fields: [teamId], references: [id])
+
+  evaluations Evaluation[]
+
+  @@map("videojuegos")
+}
+
+model Evaluation {
+  id         Int      @id @default(autoincrement()) @map("id_evaluacion")
+  date       DateTime @default(now()) @map("fecha")
+  comments   String?  @map("comentarios") @db.VarChar(250)
+  totalScore Float?   @map("puntaje_total")
+
+  jurorId Int  @map("id_jurado")
+  juror   User @relation("JurorEvaluations", fields: [jurorId], references: [id])
+
+  videogameId Int       @map("id_videojuego")
+  videogame   Videogame @relation(fields: [videogameId], references: [id])
+
+  details EvaluationDetail[]
+
+  // Ensure a juror can only evaluate a specific game once
+  @@unique([jurorId, videogameId], name: "jurado_videojuego_unique")
+  @@map("evaluacion")
+}
+
+model Subject {
+  id   Int    @id @default(autoincrement()) @map("id_materia")
+  name String @map("nombre") @db.VarChar(50)
+  code Int?   @map("codigo")
+
+  nrcs NRC[]
+
+  @@map("materia")
+}
+
+model NRC {
+  id   Int @id @default(autoincrement()) @map("id_nrc")
+  code Int @unique @map("codigo")
+
+  subjectId Int     @map("id_materia")
+  subject   Subject @relation(fields: [subjectId], references: [id])
+
+  professorId Int  @map("id_profesor")
+  professor   User @relation("ProfessorNRC", fields: [professorId], references: [id])
+
+  // This is the list of students enrolled in this NRC
+  members Member[] @relation("MemberNRC")
+
+  @@map("nrc")
+}
+
+model Criterion {
+  id          Int     @id @default(autoincrement()) @map("id_criterio")
+  name        String  @map("nombre") @db.VarChar(50)
+  description String? @map("descripcion") @db.VarChar(100)
+  weight      Float?  @map("peso")
+
+  evaluationDetails EvaluationDetail[]
+
+  @@map("criterios")
+}
+
+model EvaluationDetail {
+  id    Int   @id @default(autoincrement()) @map("id_detalle")
+  score Float @map("puntaje")
+
+  evaluationId Int        @map("id_evaluacion")
+  evaluation   Evaluation @relation(fields: [evaluationId], references: [id])
+
+  criterionId Int       @map("id_criterio")
+  criterion   Criterion @relation(fields: [criterionId], references: [id])
+
+  // Ensure only one score per criterion per evaluation
+  @@unique([evaluationId, criterionId], name: "evaluacion_criterio_unique")
+  @@map("detalle_evaluacion")
+}
