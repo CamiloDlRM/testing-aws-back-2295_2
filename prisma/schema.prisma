@@ -9,52 +9,120 @@ datasource db {
 
 // --- MODELS --- //
 
+model Edition {
+  id        Int      @id @default(autoincrement()) @map("id_edicion")
+  semester  String   @unique @map("semestre")
+  isActive  Boolean  @default(false) @map("activo")
+  createdAt DateTime @default(now()) @map("creado_en")
+  updatedAt DateTime @updatedAt @map("actualizado_en")
+
+  teams       Team[]
+  evaluations Evaluation[]
+
+  @@map("ediciones")
+}
+
+model EventConfiguration {
+  id              Int      @id @default(autoincrement())
+  evaluationsOpen Boolean  @default(false) @map("evaluaciones_abiertas")
+  createdAt       DateTime @default(now()) @map("creado_en")
+  updatedAt       DateTime @updatedAt @map("actualizado_en")
+
+  @@map("configuracion_evento")
+}
+
 model Role {
-  id          Int          @id @default(autoincrement()) @map("id_rol")
-  name        String       @unique @map("rol")
-  description String?      @map("descripcion")
-  users       User[]
-  endpoints   Endpoint[]   @relation("EndpointRoles")
-  permissions Permission[] @relation("RolePermissions")
+  id          Int      @id @default(autoincrement()) @map("id_rol")
+  name        String   @unique @map("rol")
+  description String?  @map("descripcion") @db.Text
+  status      Boolean? @map("estado")
+  createdAt   DateTime @default(now()) @map("creado_en")
+  updatedAt   DateTime @updatedAt @map("actualizado_en")
+
+  users           User[]
+  rolePermissions RolePermission[]
 
   @@map("roles")
 }
 
-model Endpoint {
-  id          Int     @id @default(autoincrement()) @map("id_endpoint")
-  name        String  @unique @map("nombre")
-  description String? @map("descripcion")
-  roles       Role[]  @relation("EndpointRoles")
+model Service {
+  id          Int      @id @default(autoincrement()) @map("id_servicio")
+  name        String   @unique @map("nombre")
+  description String?  @map("descripcion") @db.Text
+  url         String?  @map("url")
+  method      String?  @map("metodo") @db.VarChar(10)
+  status      Boolean? @map("estado")
+  createdAt   DateTime @default(now()) @map("creado_en")
+  updatedAt   DateTime @updatedAt @map("actualizado_en")
 
-  @@map("endpoint")
+  servicePermissions ServicePermission[]
+
+  @@map("servicio")
 }
 
 model Permission {
-  id          Int     @id @default(autoincrement()) @map("id_permiso")
-  name        String  @unique @map("nombre")
-  description String? @map("descripcion")
+  id          Int      @id @default(autoincrement()) @map("id_permiso")
+  name        String   @unique @map("nombre")
+  description String?  @map("descripcion") @db.Text
+  status      Boolean? @map("estado")
+  createdAt   DateTime @default(now()) @map("creado_en")
+  updatedAt   DateTime @updatedAt @map("actualizado_en")
 
-  roles Role[] @relation("RolePermissions")
+  rolePermissions    RolePermission[]
+  servicePermissions ServicePermission[]
 
   @@map("permisos")
 }
 
-enum ConfirmationStatus {
-  PENDING
-  CONFIRMED
-  EXPIRED
+model RolePermission {
+  roleId       Int      @map("id_rol")
+  permissionId Int      @map("id_permiso")
+  status       Boolean? @map("estado")
+  createdAt    DateTime @default(now()) @map("creado_en")
+  updatedAt    DateTime @updatedAt @map("actualizado_en")
+
+  role       Role       @relation(fields: [roleId], references: [id])
+  permission Permission @relation(fields: [permissionId], references: [id])
+
+  @@id([roleId, permissionId])
+  @@map("rol_permiso")
+}
+
+model ServicePermission {
+  serviceId    Int      @map("id_servicio")
+  permissionId Int      @map("id_permiso")
+  status       Boolean? @map("estado")
+  createdAt    DateTime @default(now()) @map("creado_en")
+  updatedAt    DateTime @updatedAt @map("actualizado_en")
+
+  service    Service    @relation(fields: [serviceId], references: [id])
+  permission Permission @relation(fields: [permissionId], references: [id])
+
+  @@id([serviceId, permissionId])
+  @@map("servicio_permiso")
+}
+
+model ConfirmationStatus {
+  id        Int      @id @default(autoincrement()) @map("id_estado")
+  status    String   @unique @map("estado") @db.VarChar(30)
+  createdAt DateTime @default(now()) @map("creado_en")
+  updatedAt DateTime @updatedAt @map("actualizado_en")
+
+  users User[]
+
+  @@map("estados_confirmacion")
 }
 
 model User {
-  id       Int     @id @default(autoincrement()) @map("id_usuario")
+  id       String  @id @default(uuid()) @map("id_usuario")
   name     String? @db.VarChar(20)
   username String? @unique @db.VarChar(30)
   email    String  @unique @map("correo") @db.VarChar(30)
-  password String
 
-  confirmationStatus ConfirmationStatus? @map("estado_confirmacion")
-  confirmationToken  String?             @unique @map("token_confirmacion")
-  isActive           Boolean?            @default(false) @map("activo")
+  confirmationStatusId Int?                @map("id_estado_confirmacion")
+  confirmationStatus   ConfirmationStatus? @relation(fields: [confirmationStatusId], references: [id])
+
+  isActive Boolean? @default(false) @map("activo")
 
   roleId Int  @map("id_rol")
   role   Role @relation(fields: [roleId], references: [id])
@@ -79,11 +147,14 @@ model Team {
   registrationDate DateTime @default(now()) @map("fecha_registro")
   isConfirmed      Boolean? @map("estado_confirmacion")
 
-  ownerId Int  @unique @map("id_usuario")
-  owner   User @relation("createdTeam", fields: [ownerId], references: [id])
+  userId String @unique @map("id_usuario")
+  user   User   @relation("createdTeam", fields: [userId], references: [id])
 
   members   Member[]   @relation("TeamMembers")
   videogame Videogame?
+
+  editionId Int     @map("id_edicion")
+  edition   Edition @relation(fields: [editionId], references: [id])
 
   assignedJurors User[] @relation("JurorTeamAssignment")
 
@@ -93,6 +164,7 @@ model Team {
 model Member {
   id          Int    @id @default(autoincrement()) @map("id_integrante")
   name        String @map("nombre") @db.VarChar(50)
+  apellido    String @map("apellido") @db.VarChar(50)
   email       String @unique @map("correo") @db.VarChar(100)
   studentCode String @unique @map("codigo_estudiantil") @db.VarChar(100)
 
@@ -104,16 +176,27 @@ model Member {
   @@map("integrante")
 }
 
+model VideogameStatus {
+  id     Int    @id @default(autoincrement()) @map("id_estado")
+  status String @map("estado") @db.VarChar(30)
+
+  videogames Videogame[]
+
+  @@map("estado_videojuego")
+}
+
 model Videogame {
   id               Int      @id @default(autoincrement()) @map("id_videojuego")
   name             String   @map("nombre") @db.VarChar(30)
-  description      String?  @map("descripcion") @db.VarChar(150)
+  description      String?  @map("descripcion") @db.Text
+  logoUrl          String?  @map("logo_url")
   registrationDate DateTime @default(now()) @map("fecha_registro")
-  status           String?  @map("estado") @db.VarChar(15)
 
-  teamId Int  @unique @map("id_equipo")
-  team   Team @relation(fields: [teamId], references: [id])
+  videogameStatusId Int              @map("id_estado_videojuego")
+  videogameStatus   VideogameStatus? @relation(fields: [videogameStatusId], references: [id])
 
+  teamId      Int          @unique @map("id_equipo")
+  team        Team         @relation(fields: [teamId], references: [id])
   evaluations Evaluation[]
 
   @@map("videojuegos")
@@ -122,16 +205,18 @@ model Videogame {
 model Evaluation {
   id         Int      @id @default(autoincrement()) @map("id_evaluacion")
   date       DateTime @default(now()) @map("fecha")
-  comments   String?  @map("comentarios") @db.VarChar(250)
+  comments   String?  @map("comentarios") @db.Text
   totalScore Float?   @map("puntaje_total")
 
-  jurorId Int  @map("id_jurado")
-  juror   User @relation("JurorEvaluations", fields: [jurorId], references: [id])
+  jurorId String @map("id_jurado")
+  juror   User   @relation("JurorEvaluations", fields: [jurorId], references: [id])
 
   videogameId Int       @map("id_videojuego")
   videogame   Videogame @relation(fields: [videogameId], references: [id])
 
-  details EvaluationDetail[]
+  details   EvaluationDetail[]
+  Edition   Edition            @relation(fields: [editionId], references: [id])
+  editionId Int                @map("id_edicion")
 
   // Ensure a juror can only evaluate a specific game once
   @@unique([jurorId, videogameId], name: "jurado_videojuego_unique")
@@ -139,9 +224,10 @@ model Evaluation {
 }
 
 model Subject {
-  id   Int    @id @default(autoincrement()) @map("id_materia")
-  name String @map("nombre") @db.VarChar(50)
-  code Int?   @map("codigo")
+  id       Int     @id @default(autoincrement()) @map("id_materia")
+  name     String  @map("nombre") @db.VarChar(50)
+  code     String? @map("codigo") @db.VarChar(50)
+  semester Int     @map("semestre")
 
   nrcs NRC[]
 
@@ -155,8 +241,8 @@ model NRC {
   subjectId Int     @map("id_materia")
   subject   Subject @relation(fields: [subjectId], references: [id])
 
-  professorId Int  @map("id_profesor")
-  professor   User @relation("ProfessorNRC", fields: [professorId], references: [id])
+  professorId String @map("id_profesor")
+  professor   User   @relation("ProfessorNRC", fields: [professorId], references: [id])
 
   // This is the list of students enrolled in this NRC
   members Member[] @relation("MemberNRC")
@@ -167,7 +253,7 @@ model NRC {
 model Criterion {
   id          Int     @id @default(autoincrement()) @map("id_criterio")
   name        String  @map("nombre") @db.VarChar(50)
-  description String? @map("descripcion") @db.VarChar(100)
+  description String? @map("descripcion") @db.Text
   weight      Float?  @map("peso")
 
   evaluationDetails EvaluationDetail[]
