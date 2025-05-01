@@ -165,7 +165,6 @@ model Team {
 model Member {
   id          Int    @id @default(autoincrement()) @map("id_integrante")
   name        String @map("nombre") @db.VarChar(50)
-  apellido    String @map("apellido") @db.VarChar(50)
   email       String @unique @map("correo") @db.VarChar(100)
   studentCode String @unique @map("codigo_estudiantil") @db.VarChar(100)
 
@@ -228,6 +227,7 @@ model Subject {
   id       Int     @id @default(autoincrement()) @map("id_materia")
   name     String  @map("nombre") @db.VarChar(50)
   code     String? @map("codigo") @db.VarChar(50)
+  active   Boolean @map("activo")
   semester Int     @map("semestre")
 
   nrcs NRC[]
@@ -236,8 +236,9 @@ model Subject {
 }
 
 model NRC {
-  id   Int @id @default(autoincrement()) @map("id_nrc")
-  code Int @unique @map("codigo")
+  id     Int     @id @default(autoincrement()) @map("id_nrc")
+  code   Int     @unique @map("codigo")
+  active Boolean @map("activo")
 
   subjectId Int     @map("id_materia")
   subject   Subject @relation(fields: [subjectId], references: [id])
@@ -255,6 +256,7 @@ model Criterion {
   id          Int     @id @default(autoincrement()) @map("id_criterio")
   name        String  @map("nombre") @db.VarChar(50)
   description String? @map("descripcion") @db.Text
+  active      Boolean @map("activo")
   weight      Float?  @map("peso")
 
   evaluationDetails EvaluationDetail[]

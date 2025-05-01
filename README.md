@@ -1,98 +1,97 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Arkad API Documentation
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Welcome to the Arkad API documentation. Here you'll find information about each API endpoint and how to use them. All is divided by modules.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Table of Modules
+- [Auth](#auth)
 
-## Description
+## Auth
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+This module is responsible for user authentication and handling sessions for the Arkad API. It integrates with an external identity provider (Supabase) for credential verification and utilizes JWTs (JSON Web Tokens) for session management.
 
-## Project setup
+To enhance security, this API **does not** rely on storing JWTs in browser `localStorage`. Instead, upon successful authentication or token refresh, it sets the necessary tokens (`access-token`, `refresh-token`) as **secure, `HttpOnly` cookies**. This approach mitigates risks associated with Cross-Site Scripting (XSS) attacks trying to steal tokens. Browsers (and tools like Postman) will automatically handle sending these cookies on subsequent requests to the API.
 
-```bash
-$ npm install
+### Endpoints
+
+This module provides the following endpoints:
+
+-   [`POST /auth/login`](#login)
+-   [`POST /auth/refresh`](#refresh)
+-   [`POST /auth/logout`](#logout)
+-   [`GET /auth/me`](#get-user-profile-authme)
+
+---
+
+### Login
+
+<a name="login"></a>
+`POST /auth/login`
+
+**Description:** Authenticates a user using their registered email and password. On successful authentication with the identity provider and validation against the local user database (including activating pending accounts), it establishes a session by setting secure `HttpOnly` cookies containing the access and refresh tokens.
+
+**Request Body:**
+
+Requires `Content-Type: application/json`.
+
+```json
+{
+  "email": "user@example.com",
+  "password": "yourSecurePassword"
+}
 ```
 
-## Compile and run the project
+### Refresh
 
-```bash
-# development
-$ npm run start
+<a name="refresh"></a>
+`POST /auth/refresh`
 
-# watch mode
-$ npm run start:dev
+**Description:** Refreshes the user's session by generating a new access token using the refresh token stored in a secure `HttpOnly` cookie. This endpoint is typically called when the access token expires.
 
-# production mode
-$ npm run start:prod
+**Request Headers:**
+
+Requires `Cookie: refresh-token=<refresh_token>`.
+
+### Logout
+
+<a name="logout"></a>
+`POST /auth/logout`
+
+**Description:** Logs out the user by clearing the secure `HttpOnly` cookies containing the access and refresh tokens.
+
+**Request Headers:**
+
+Requires `Cookie: access-token=<access_token>, refresh-token=<refresh_token>`.
+
+### Get User Profile (Auth/me)
+
+<a name="get-user-profile-authme"></a>
+`GET /auth/me`
+
+**Description:** Retrieves the user's profile information.
+
+**Request Headers:**
+
+Requires `Cookie: access-token=<access_token>`.
+
+**Response Body:**
+
+Returns a JSON object containing the user's profile information.
+
+```json
+{
+  "id": "user-uuid-string",
+  "name": "User Name",
+  "username": "username",
+  "email": "user@example.com",
+  "isActive": true,
+  "createdAt": "2023-10-27T10:00:00.000Z",
+  "updatedAt": "2023-10-27T10:00:00.000Z",
+  "role": {
+    "name": "Student",
+    "description": "Student role"
+  },
+  "confirmationStatus": {
+    "status": "CONFIRMADO"
+  }
+}
 ```
-
-## Run tests
-
-```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
-```
-
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
