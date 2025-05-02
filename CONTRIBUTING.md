@@ -17,6 +17,7 @@ First off, thank you for considering contributing to the Arkad API! We welcome c
 -   [`Database Conventions: Soft Deletes`](#database-conventions-soft-deletes)
 -   [`Data Transfer Objects (DTOs) & Validation`](#data-transfer-objects-dtos--validation)
 -   [`Common commands`](#commands)
+- [`Pushing Changes`](#pushing-changes)
 
 ## Getting Started
 <a name="getting-started"></a>
@@ -220,3 +221,12 @@ Here's a list of common commands that will help you during the development:
 - `nest g resource`: Generate a new resource (controller, service, DTOs). It usually asks for the type of API (always check `REST API`) and if you want to create `CRUD endpoints`. It's likely that you are always doing `CRUDs` so mark `y` when prompted
 
 Thank you for contributing! Feel free to ask me any question in the `back` channel on Discord.
+
+## Pushing Changes
+<a name="pushing-changes"></a>
+To push your changes to the remote repository, follow these steps:
+
+1. Commit your changes locally using `git commit -m "Your commit message"`.
+2. Push your changes to the remote repository using `git push origin your-branch-name`.
+
+Please **do not merge** your branch into `dev` or `main`. make sure to create a pull request to `dev` or `main` and wait for the review process to complete before merging.
