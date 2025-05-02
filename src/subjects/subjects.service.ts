@@ -1,54 +1,55 @@
 // src/subjects/subjects.service.ts
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException, // Optional: For specific error if already inactive
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service'; // Adjust path if needed
 import { CreateSubjectDto } from './dto/create-subject.dto';
 import { UpdateSubjectDto } from './dto/update-subject.dto';
-import { Subject } from '@prisma/client'; // Import the generated Subject type
+import { Subject } from '@prisma/client';
 
 @Injectable()
 export class SubjectsService {
-  // Inject PrismaService through the constructor
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) {} // Inject PrismaService
 
   async create(createSubjectDto: CreateSubjectDto): Promise<Subject> {
-    // Use prisma client to create a new subject record
-    // Prisma automatically maps DTO fields to the correct model fields
-    // (assuming DTO field names match model field names like 'name', 'code', 'semester')
-    try {
-      const newSubject = await this.prisma.subject.create({
-        data: createSubjectDto,
-      });
-      return newSubject;
-    } catch (error) {
-      // Handle potential errors, e.g., unique constraint violation if code must be unique
-      // You might want more specific error handling here
-      console.error('Error creating subject:', error);
-      throw error; // Re-throw or handle appropriately
-    }
+    // Consider adding checks for duplicate code/name if needed
+    return this.prisma.subject.create({
+      data: createSubjectDto,
+    });
   }
 
   async findAll(): Promise<Subject[]> {
-    // Use prisma client to find all subject records
-    return this.prisma.subject.findMany();
-    // You can add options like ordering:
-    // return this.prisma.subject.findMany({ orderBy: { name: 'asc' } });
+    // --- MODIFICATION: Only return active subjects by default ---
+    return this.prisma.subject.findMany({
+      where: {
+        active: true, // Filter by active status
+      },
+      orderBy: {
+        // Optional: Add default ordering
+        name: 'asc',
+      },
+    });
   }
+
+  // Optional: Method to find all subjects including inactive ones (for admin purposes?)
+  // async findAllIncludingInactive(): Promise<Subject[]> {
+  //   return this.prisma.subject.findMany({
+  //     orderBy: { name: 'asc' }
+  //   });
+  // }
 
   async findOne(id: number): Promise<Subject> {
     const subject = await this.prisma.subject.findUnique({
-      where: {
-        id: id,
-      },
+      where: { id: id },
+      // We might still want to find an inactive subject by its specific ID
+      // If you ONLY want to find active subjects by ID, add: active: true
+      // where: { id: id, active: true },
     });
-
-    // === CHECK FOR NULL HERE ===
     if (!subject) {
-      // If subject is null (not found), throw the NestJS exception
-      throw new NotFoundException(`Subject with ID ${id} not found`);
+      throw new NotFoundException(`Subject with ID ${id} not found.`);
     }
-    // === END CHECK ===
-
-    // If we reach here, 'subject' is guaranteed to be a non-null Subject object
     return subject;
   }
 
@@ -56,68 +57,61 @@ export class SubjectsService {
     id: number,
     updateSubjectDto: UpdateSubjectDto,
   ): Promise<Subject> {
-    // Check if the subject exists first (optional but good practice for clear errors)
-    const subjectExists = await this.prisma.subject.findUnique({
+    // Check if subject exists first
+    const existingSubject = await this.prisma.subject.findUnique({
       where: { id },
     });
-    if (!subjectExists) {
-      throw new NotFoundException(
-        `Subject with ID ${id} not found. Cannot update.`,
-      );
+    if (!existingSubject) {
+      throw new NotFoundException(`Subject with ID ${id} not found.`);
     }
 
-    // Use prisma client to update the subject record
+    // Optional: Prevent updating certain fields of an inactive subject unless reactivating?
+    // if (!existingSubject.active && updateSubjectDto.active !== true) {
+    //   throw new ConflictException('Cannot update an inactive subject unless reactivating it.');
+    // }
+
     try {
       return await this.prisma.subject.update({
-        where: {
-          id: id,
-        },
-        data: updateSubjectDto, // Pass the DTO data for updates
+        where: { id: id },
+        data: updateSubjectDto,
       });
     } catch (error) {
-      // Handle potential errors during update
-      console.error('Error updating subject:', error);
-      // Prisma might throw P2025 if the record disappeared between the check and update,
-      // although our initial check makes this less likely.
-      if (error.code === 'P2025') {
-        throw new NotFoundException(
-          `Subject with ID ${id} not found during update attempt.`,
-        );
-      }
-      throw error;
+      // Handle potential errors like unique constraint violations if code is updated
+      // (Prisma throws specific errors, check Prisma docs for error codes)
+      throw error; // Re-throw for global exception filter
     }
   }
 
+  // --- METHOD TO MODIFY: Implement Soft Delete ---
   async remove(id: number): Promise<Subject> {
-    // Check if the subject exists first (optional, Prisma's delete throws if not found)
-    const subjectExists = await this.prisma.subject.findUnique({
-      where: { id },
+    // Changed return type for confirmation
+    // 1. Find the subject first to ensure it exists and check current status
+    const subject = await this.prisma.subject.findUnique({
+      where: { id: id },
     });
-    if (!subjectExists) {
-      throw new NotFoundException(
-        `Subject with ID ${id} not found. Cannot remove.`,
-      );
+
+    // 2. If not found, throw error
+    if (!subject) {
+      throw new NotFoundException(`Subject with ID ${id} not found.`);
     }
 
-    // Use prisma client to delete the subject record
-    try {
-      return await this.prisma.subject.delete({
-        where: {
-          id: id,
-        },
-      });
-    } catch (error) {
-      // Handle potential errors during delete
-      console.error('Error removing subject:', error);
-      // Prisma throws P2025 RecordNotFound if the record is already gone.
-      if (error.code === 'P2025') {
-        throw new NotFoundException(
-          `Subject with ID ${id} not found during removal attempt.`,
-        );
-      }
-      // Handle other errors, e.g., foreign key constraints if NRCs depend on this Subject
-      // if (error.code === 'P2003') { /* Foreign key constraint failed */ }
-      throw error;
+    // 3. Optional: If already inactive, you might want to prevent re-deleting
+    //    or just return the current state idempotently.
+    if (!subject.active) {
+      // Option A: Throw an error
+      throw new ConflictException(`Subject with ID ${id} is already inactive.`);
+      // Option B: Return the subject as is (idempotent)
+      // return subject;
     }
+
+    // 4. Perform the update to set active = false
+    const updatedSubject = await this.prisma.subject.update({
+      where: { id: id },
+      data: { active: false }, // Set active to false
+    });
+
+    // 5. Return the updated (now inactive) subject
+    return updatedSubject;
   }
+  // --- End Soft Delete Implementation ---
 }

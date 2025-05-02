@@ -7,39 +7,41 @@ import {
   Patch,
   Param,
   Delete,
-  ParseIntPipe, // Use ParseIntPipe for ID validation/conversion
-  NotFoundException, // Import if needed for explicit handling, though service throws now
-  HttpCode, // Optional: Set specific HTTP codes (e.g., 204 for delete)
+  ParseIntPipe,
+  NotFoundException,
+  HttpCode,
   HttpStatus,
+  ConflictException, // Import if using ConflictException from service
 } from '@nestjs/common';
-import { SubjectsService } from './subjects.service'; // Corrected spelling
-import { CreateSubjectDto } from './dto/create-subject.dto'; // Corrected spelling
-import { UpdateSubjectDto } from './dto/update-subject.dto'; // Corrected spelling
-import { Subject } from '@prisma/client'; // Import type for better typing, optional
+import { SubjectsService } from './subjects.service';
+import { CreateSubjectDto } from './dto/create-subject.dto';
+import { UpdateSubjectDto } from './dto/update-subject.dto';
+import { Subject } from '@prisma/client';
 
-@Controller('subjects') // Corrected spelling
+@Controller('subjects')
 export class SubjectsController {
-  // Corrected spelling
-  constructor(private readonly subjectsService: SubjectsService) {} // Corrected spelling
+  constructor(private readonly subjectsService: SubjectsService) {}
 
   @Post()
   async create(@Body() createSubjectDto: CreateSubjectDto): Promise<Subject> {
-    // Return Promise<Subject>
-    // DTO validation is handled by ValidationPipe (if enabled globally)
     return this.subjectsService.create(createSubjectDto);
   }
 
   @Get()
   async findAll(): Promise<Subject[]> {
-    // Return Promise<Subject[]>
+    // This now correctly returns only active subjects due to service change
     return this.subjectsService.findAll();
   }
 
+  // Optional: Endpoint to get all subjects including inactive ones?
+  // @Get('all') // Example route
+  // async findAllIncludingInactive(): Promise<Subject[]> {
+  //   return this.subjectsService.findAllIncludingInactive(); // Assumes you added this method to service
+  // }
+
   @Get(':id')
-  // Use ParseIntPipe to automatically convert 'id' string to number and validate
   async findOne(@Param('id', ParseIntPipe) id: number): Promise<Subject> {
-    // Return Promise<Subject>
-    // Service now throws NotFoundException if not found, NestJS handles it
+    // This will find a subject even if it's inactive by default service logic
     return this.subjectsService.findOne(id);
   }
 
@@ -48,15 +50,16 @@ export class SubjectsController {
     @Param('id', ParseIntPipe) id: number,
     @Body() updateSubjectDto: UpdateSubjectDto,
   ): Promise<Subject> {
-    // Return Promise<Subject>
     return this.subjectsService.update(id, updateSubjectDto);
   }
 
+  // --- Controller Delete Endpoint ---
+  // Stays largely the same, relies on the service's updated logic.
+  // Still returns 204 No Content, which is appropriate for soft delete.
   @Delete(':id')
-  @HttpCode(HttpStatus.NO_CONTENT) // Set HTTP 204 No Content for successful deletion
+  @HttpCode(HttpStatus.NO_CONTENT)
   async remove(@Param('id', ParseIntPipe) id: number): Promise<void> {
-    // Return Promise<void> for 204
-    await this.subjectsService.remove(id);
-    // No need to return the deleted object if using 204 No Content
+    await this.subjectsService.remove(id); // Service now performs soft delete
+    // No body returned for 204
   }
 }
