@@ -7,9 +7,16 @@ import { AuthModule } from './auth/auth.module';
 import { APP_GUARD } from '@nestjs/core';
 import { SupabaseAuthGuard } from './auth/guards/supabase-auth.guard';
 import { UsersModule } from './users/users.module';
+import { SubjectsModule } from './subjects/subjects.module';
 
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true }), PrismaModule, AuthModule, UsersModule],
+  imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
+    PrismaModule,
+    AuthModule,
+    UsersModule,
+    SubjectsModule,
+  ],
   controllers: [AppController],
   // We provide the AuthGuard as a global guard for all routes
   providers: [AppService, { provide: APP_GUARD, useClass: SupabaseAuthGuard }],
