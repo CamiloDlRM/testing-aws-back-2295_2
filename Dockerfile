@@ -12,8 +12,12 @@ COPY . .
 # Usa los secrets solo durante el build
 RUN --mount=type=secret,id=database_url \
     --mount=type=secret,id=jwt_secret \
+    --mount=type=secret,id=supabase_url \
+    --mount=type=secret,id=supabase_key \
     export DATABASE_URL=$(cat /run/secrets/database_url) && \
     export SUPABASE_JWT_SECRET=$(cat /run/secrets/jwt_secret) && \
+    export SUPABASE_URL=$(cat /run/secrets/supabase_url) && \
+    export SUPABASE_KEY=$(cat /run/secrets/supabase_key) && \
     npx prisma generate && npm run build
 
 # Etapa de producción
