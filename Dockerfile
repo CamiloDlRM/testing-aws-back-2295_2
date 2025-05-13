@@ -17,7 +17,7 @@ RUN --mount=type=secret,id=database_url \
     export DATABASE_URL=$(cat /run/secrets/database_url) && \
     export SUPABASE_JWT_SECRET=$(cat /run/secrets/jwt_secret) && \
     export SUPABASE_URL=$(cat /run/secrets/supabase_url) && \
-    export SUPABASE_KEY=$(cat /run/secrets/supabase_key) && 
+    export SUPABASE_KEY=$(cat /run/secrets/supabase_key) 
     
 RUN npx prisma generate 
 RUN npm run build
