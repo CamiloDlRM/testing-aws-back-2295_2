@@ -13,7 +13,7 @@ RUN --mount=type=secret,id=database_url \
     --mount=type=secret,id=jwt_secret \
     --mount=type=secret,id=supabase_url \
     --mount=type=secret,id=supabase_key \
-    echo "🔍 Verificando variables de entorno..." && \
+    echo "Verificando variables de entorno..." && \
     export DATABASE_URL=$(cat /run/secrets/database_url) && \
     export SUPABASE_JWT_SECRET=$(cat /run/secrets/jwt_secret) && \
     export SUPABASE_URL=$(cat /run/secrets/supabase_url) && \
@@ -29,9 +29,9 @@ RUN --mount=type=secret,id=database_url \
     fi && \
     \
     # Verificar otras variables \
-    echo "🔹 DATABASE_URL: ${DATABASE_URL:0:20}... (longitud: ${#DATABASE_URL})" && \
-    echo "🔹 SUPABASE_URL: ${SUPABASE_URL:0:20}..." && \
-    echo "🔹 SUPABASE_KEY: ${SUPABASE_KEY:0:2}****${SUPABASE_KEY: -2}" && \
+    echo "DATABASE_URL: ${DATABASE_URL:0:20}... (longitud: ${#DATABASE_URL})" && \
+    echo "SUPABASE_URL: ${SUPABASE_URL:0:20}..." && \
+    echo "SUPABASE_KEY: ${SUPABASE_KEY:0:2}****${SUPABASE_KEY: -2}" && \
     \
     # Verificar conexión a PostgreSQL \
     echo "Verificando conexión a la base de datos..." && \
