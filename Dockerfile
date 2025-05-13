@@ -18,6 +18,7 @@ RUN --mount=type=secret,id=database_url \
     export SUPABASE_JWT_SECRET=$(cat /run/secrets/jwt_secret) && \
     export SUPABASE_URL=$(cat /run/secrets/supabase_url) && \
     export SUPABASE_KEY=$(cat /run/secrets/supabase_key) && \
+    echo "Valor de DATABASE_URL: $DATABASE_URL" && \
     echo "Verificando conexión a la base de datos..." && \
     apk add --no-cache postgresql-client && \
     CLEAN_DATABASE_URL=$(echo $DATABASE_URL | sed 's/\?.*//') && \
