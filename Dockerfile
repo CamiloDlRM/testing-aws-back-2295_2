@@ -57,6 +57,15 @@ COPY --from=builder /usr/src/app/dist ./dist
 COPY --from=builder /usr/src/app/package.json ./
 COPY --from=builder /usr/src/app/node_modules ./node_modules
 COPY --from=builder /usr/src/app/generated ./generated
+COPY --from=builder /usr/src/app/node_modules/.prisma ./node_modules/.prisma
+
+# Verificación de estructura de archivos
+RUN echo "=== ESTRUCTURA DE CARPETAS EN PRODUCCIÓN ===" && \
+    echo "\nContenido del directorio raíz:" && ls -la && \
+    echo "\nContenido de dist:" && ls -la dist && \
+    echo "\nContenido de node_modules:" && ls -la node_modules && \
+    echo "\nContenido de node_modules/.prisma:" && ls -la node_modules/.prisma && \
+    echo "\nContenido de generated:" && ls -la generated
 
 # Verificación final en runtime
 RUN echo "import { config } from 'dotenv'; config(); \
