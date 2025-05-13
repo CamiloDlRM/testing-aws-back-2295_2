@@ -21,7 +21,8 @@ RUN --mount=type=secret,id=database_url \
     echo "Verificando conexión a la base de datos..." && \
     apk add --no-cache postgresql-client && \
     export PGPASSWORD=$(echo $DATABASE_URL | sed -E 's/.*:\/\/[^:]+:([^@]+)@.*/\1/') && \
-    psql "$DATABASE_URL" -c '\dt'
+    DATABASE_URL_NO_QUERY=$(echo $DATABASE_URL | cut -d'?' -f1) && \
+    psql "$DATABASE_URL_NO_QUERY" -c '\dt'
     
 # Generar Prisma
 RUN npx prisma generate
