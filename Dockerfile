@@ -1,4 +1,3 @@
-cambia la version y verifica lo del token de jwt # syntax=docker/dockerfile:1.4
 # Etapa de build
 FROM node:18-alpine AS builder
 
