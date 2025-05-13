@@ -9,7 +9,6 @@ RUN npm install
 
 COPY . .
 
-# Usa los secrets solo durante el build
 RUN --mount=type=secret,id=database_url \
     --mount=type=secret,id=jwt_secret \
     --mount=type=secret,id=supabase_url \
@@ -21,9 +20,8 @@ RUN --mount=type=secret,id=database_url \
     echo "Valor de DATABASE_URL: $DATABASE_URL" && \
     echo "Verificando conexión a la base de datos..." && \
     apk add --no-cache postgresql-client && \
-    CLEAN_DATABASE_URL=$(echo $DATABASE_URL | cut -d'?' -f1) && \
-    PGPASSWORD=$(echo $CLEAN_DATABASE_URL | sed -E 's/.*:([^@]*)@.*/\1/') && \
-    psql $(echo $CLEAN_DATABASE_URL | sed -E 's/([^:]*:\/\/)([^:]*):[^@]*@(.*)/\1\2@\3/') -c '\dt'
+    export PGPASSWORD=$(echo $DATABASE_URL | sed -E 's/.*:\/\/[^:]+:([^@]+)@.*/\1/') && \
+    psql "$DATABASE_URL" -c '\dt'
     
 # Generar Prisma
 RUN npx prisma generate
