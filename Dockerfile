@@ -21,8 +21,8 @@ RUN --mount=type=secret,id=database_url \
     echo "Valor de DATABASE_URL: $DATABASE_URL" && \
     echo "Verificando conexión a la base de datos..." && \
     apk add --no-cache postgresql-client && \
-    CLEAN_DATABASE_URL=$(echo $DATABASE_URL | sed 's/\?.*//') && \
-    PGPASSWORD=$(echo $CLEAN_DATABASE_URL | sed -E 's/.*:([^@]*)@.*/\1/') \
+    CLEAN_DATABASE_URL=$(echo $DATABASE_URL | cut -d'?' -f1) && \
+    PGPASSWORD=$(echo $CLEAN_DATABASE_URL | sed -E 's/.*:([^@]*)@.*/\1/') && \
     psql $(echo $CLEAN_DATABASE_URL | sed -E 's/([^:]*:\/\/)([^:]*):[^@]*@(.*)/\1\2@\3/') -c '\dt'
     
 # Generar Prisma
