@@ -17,9 +17,16 @@ RUN --mount=type=secret,id=database_url \
     export DATABASE_URL=$(cat /run/secrets/database_url) && \
     export SUPABASE_JWT_SECRET=$(cat /run/secrets/jwt_secret) && \
     export SUPABASE_URL=$(cat /run/secrets/supabase_url) && \
-    export SUPABASE_KEY=$(cat /run/secrets/supabase_key) 
-    
-RUN npx prisma generate 
+    export SUPABASE_KEY=$(cat /run/secrets/supabase_key) && \
+    echo "Verificando conexión a la base de datos..." && \
+    apk add --no-cache postgresql-client && \
+    PGPASSWORD=$(echo $DATABASE_URL | sed -E 's/.*:([^@]*)@.*/\1/') \
+    psql $(echo $DATABASE_URL | sed -E 's/([^:]*:\/\/)([^:]*):[^@]*@(.*)/\1\2@\3/') -c '\dt'
+
+# Generar Prisma
+RUN npx prisma generate
+
+# Construir aplicación
 RUN npm run build
 
 # Etapa de producción
