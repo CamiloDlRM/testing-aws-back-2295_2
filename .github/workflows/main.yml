@@ -35,6 +35,7 @@ jobs:
       - name: Run tests
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }} 
+          SUPABASE_JWT_SECRET: ${{ secrets.SUPABASE_JWT_SECRET }}
         run: |
           if [[ "${{ github.ref_name }}" == "main" ]]; then
             npm run test:main
@@ -52,7 +53,9 @@ jobs:
         run: npx prisma generate
       - name: Log in to Docker Hub
         run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+      - name: Build app
+        run: npm run build
       - name: Build the Docker image
-        run: docker build -f Dockerfile --build-arg DATABASE_URL=${{ secrets.DATABASE_URL }} -t ${{ secrets.DOCKERHUB_USERNAME }}/my-image-name:latest .
+        run: docker build -f Dockerfile --build-arg DATABASE_URL=${{ secrets.DATABASE_URL }} --build-arg SUPABASE_JWT_SECRET=${{ secrets.SUPABASE_JWT_SECRET }} -t ${{ secrets.DOCKERHUB_USERNAME }}/my-image-name:latest .
       - name: Push the image to Docker Hub
         run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/my-image-name:latest
