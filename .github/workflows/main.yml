@@ -34,7 +34,7 @@ jobs:
         run: npm install
       - name: Run tests
         env:
-          DATABASE_URL: "postgresql://testuser:testpass@localhost:5432/testdb" 
+          DATABASE_URL: ${{ secrets.DATABASE_URL }} 
         run: |
           if [[ "${{ github.ref_name }}" == "main" ]]; then
             npm run test:main
@@ -53,6 +53,6 @@ jobs:
       - name: Log in to Docker Hub
         run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
       - name: Build the Docker image
-        run: docker build -f Dockerfile --build-arg DATABASE_URL="postgresql://testuser:testpass@localhost:5432/testdb" -t ${{ secrets.DOCKERHUB_USERNAME }}/my-image-name:latest .
+        run: docker build -f Dockerfile --build-arg DATABASE_URL=${{ secrets.DATABASE_URL }} -t ${{ secrets.DOCKERHUB_USERNAME }}/my-image-name:latest .
       - name: Push the image to Docker Hub
         run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/my-image-name:latest
