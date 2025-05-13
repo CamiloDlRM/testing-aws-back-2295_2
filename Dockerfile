@@ -20,9 +20,10 @@ RUN --mount=type=secret,id=database_url \
     export SUPABASE_KEY=$(cat /run/secrets/supabase_key) && \
     echo "Verificando conexión a la base de datos..." && \
     apk add --no-cache postgresql-client && \
-    PGPASSWORD=$(echo $DATABASE_URL | sed -E 's/.*:([^@]*)@.*/\1/') \
-    psql $(echo $DATABASE_URL | sed -E 's/([^:]*:\/\/)([^:]*):[^@]*@(.*)/\1\2@\3/') -c '\dt'
-
+    CLEAN_DATABASE_URL=$(echo $DATABASE_URL | sed 's/\?.*//') && \
+    PGPASSWORD=$(echo $CLEAN_DATABASE_URL | sed -E 's/.*:([^@]*)@.*/\1/') \
+    psql $(echo $CLEAN_DATABASE_URL | sed -E 's/([^:]*:\/\/)([^:]*):[^@]*@(.*)/\1\2@\3/') -c '\dt'
+    
 # Generar Prisma
 RUN npx prisma generate
 
