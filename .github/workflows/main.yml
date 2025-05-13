@@ -6,6 +6,7 @@ on:
   pull_request:
     branches:
       - test
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -36,12 +37,15 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }} 
           SUPABASE_JWT_SECRET: ${{ secrets.SUPABASE_JWT_SECRET }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
         run: |
           if [[ "${{ github.ref_name }}" == "main" ]]; then
             npm run test:main
           else
             echo "run testing"
           fi
+
   docker-image:
     runs-on: ubuntu-latest
     needs: test  
@@ -57,12 +61,16 @@ jobs:
         run: |
           echo "${{ secrets.DATABASE_URL }}" > database_url_secret.txt
           echo "${{ secrets.SUPABASE_JWT_SECRET }}" > jwt_secret.txt
+          echo "${{ secrets.SUPABASE_URL }}" > supabase_url_secret.txt
+          echo "${{ secrets.SUPABASE_KEY }}" > supabase_key_secret.txt
 
           DOCKER_BUILDKIT=1 docker build \
             --secret id=database_url,src=database_url_secret.txt \
             --secret id=jwt_secret,src=jwt_secret.txt \
+            --secret id=supabase_url,src=supabase_url_secret.txt \
+            --secret id=supabase_key,src=supabase_key_secret.txt \
             -t ${{ secrets.DOCKERHUB_USERNAME }}/my-image-name:latest .
 
-          rm database_url_secret.txt jwt_secret.txt
+          rm database_url_secret.txt jwt_secret.txt supabase_url_secret.txt supabase_key_secret.txt
       - name: Push the image to Docker Hub
         run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/my-image-name:latest
