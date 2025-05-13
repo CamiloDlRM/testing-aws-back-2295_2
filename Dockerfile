@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.4
 # Etapa de build
 FROM node:18-alpine AS builder
 
@@ -8,8 +9,12 @@ RUN npm install
 
 COPY . .
 
-RUN npx prisma generate
-RUN npm run build
+# Usa los secrets solo durante el build
+RUN --mount=type=secret,id=database_url \
+    --mount=type=secret,id=jwt_secret \
+    export DATABASE_URL=$(cat /run/secrets/database_url) && \
+    export SUPABASE_JWT_SECRET=$(cat /run/secrets/jwt_secret) && \
+    npx prisma generate && npm run build
 
 # Etapa de producción
 FROM node:18-alpine AS production
